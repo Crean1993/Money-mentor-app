@@ -224,30 +224,25 @@ const STARTERS = {
 };
 
 // ─── API CALL ─────────────────────────────────────────────────────────────────
-async function callClaude(messages, systemPrompt, onSearch) {
-  const tool = {type:"web_search_20250305", name:"web_search"};
-  let msgs = messages;
-  let finalText = "";
-  for (let i=0; i<5; i++) {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method:"POST",
-      headers:{"Content-Type":"application/json","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-      body:JSON.stringify({model:"claude-sonnet-4-20250514", max_tokens:800, system:systemPrompt, tools:[tool], messages:msgs}),
-    });
-    const d = await res.json();
-    if (!d.content) break;
-    const tools = d.content.filter(b=>b.type==="tool_use");
-    const texts = d.content.filter(b=>b.type==="text");
-    if (tools.length) {
-      if (onSearch) onSearch(tools.map(t=>t.input?.query).filter(Boolean));
-      msgs = [...msgs, {role:"assistant",content:d.content}, {role:"user",content:tools.map(t=>({type:"tool_result",tool_use_id:t.id,content:t.output||""}))}];
-      if (d.stop_reason==="end_turn") { finalText=texts.map(t=>t.text||"").join(""); break; }
-    } else {
-      finalText = texts.map(t=>t.text||"").join("");
-      break;
-    }
+async function callClaude(messages, systemPrompt) {
+  const res = await fetch("/api/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      messages,
+      systemPrompt
+    })
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data?.error || "Request failed");
   }
-  return finalText || "Sorry, I couldn't get a response. Please try again.";
+
+  return data.reply || "Sorry, I couldn't get a response. Please try again.";
 }
 
 // ─── SMALL COMPONENTS ─────────────────────────────────────────────────────────
