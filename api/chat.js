@@ -4,6 +4,10 @@ export default async function handler(req, res) {
   }
 
   try {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return res.status(500).json({ error: "Missing ANTHROPIC_API_KEY" });
+    }
+
     const { messages, systemPrompt } = req.body || {};
 
     const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
@@ -14,7 +18,7 @@ export default async function handler(req, res) {
         "anthropic-version": "2023-06-01"
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-3-5-sonnet-20241022",
         max_tokens: 800,
         system: systemPrompt,
         messages
@@ -24,9 +28,8 @@ export default async function handler(req, res) {
     const data = await anthropicRes.json();
 
     if (!anthropicRes.ok) {
-      return res.status(anthropicRes.status).json({
-        error: data?.error?.message || "Anthropic request failed",
-        raw: data
+      return res.status(200).json({
+        reply: `Backend error: ${data?.error?.message || "Anthropic request failed"}`
       });
     }
 
@@ -37,11 +40,9 @@ export default async function handler(req, res) {
         ?.join("") || "No response";
 
     return res.status(200).json({ reply: text });
-
   } catch (error) {
-    return res.status(500).json({
-      error: "Server error",
-      details: error.message
+    return res.status(200).json({
+      reply: `Server error: ${error.message}`
     });
   }
 }
