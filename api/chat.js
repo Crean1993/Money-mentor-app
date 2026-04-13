@@ -34,9 +34,10 @@ export default async function handler(req, res) {
       data?.content
         ?.filter(block => block.type === "text")
         ?.map(block => block.text || "")
-        ?.join("") || "Sorry, I couldn't get a response.";
+        ?.join("") || "No response";
 
     return res.status(200).json({ reply: text });
+
   } catch (error) {
     return res.status(500).json({
       error: "Server error",
